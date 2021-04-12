@@ -7,6 +7,9 @@ import parzen_windows
 import numpy as np
 import pickle
 import sklearn
+import sklearn.linear_model as lm
+from sklearn.feature_selection import SelectFromModel
+
 from load_datasets import *
 
 from sklearn.metrics import accuracy_score
@@ -40,9 +43,11 @@ class ExplanationEvaluator:
       if classifier == 'l1logreg':
         try_cs = np.arange(.1,0,-.01)
         for c in try_cs:
-          self.classifiers[dataset]['l1logreg'] = linear_model.LogisticRegression(penalty='l1', fit_intercept=True, C=c)
+          # EDIT: default solver, lbfgs does not support l1 reg. used liblinear.
+          self.classifiers[dataset]['l1logreg'] = lm.LogisticRegression(penalty='l1', fit_intercept=True, C=c, solver='liblinear')
           self.classifiers[dataset]['l1logreg'].fit(self.train_vectors[dataset], self.train_labels[dataset])
-          lengths = [len(x.nonzero()[0]) for x in self.classifiers[dataset]['l1logreg'].transform(self.train_vectors[dataset])]
+          # reduce x to only the most important features
+          lengths = [len(x.nonzero()[0]) for x in SelectFromModel(self.classifiers[dataset]['l1logreg'], prefit=True).transform(self.train_vectors[dataset])]
           if np.max(lengths) <= 10:
             #print 'Logreg for ', dataset, ' has mean length',  np.mean(lengths), 'with C=', c
             #print 'And max length = ', np.max(lengths)

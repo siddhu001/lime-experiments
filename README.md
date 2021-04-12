@@ -18,7 +18,9 @@ If we forgot something, please email the first author.
 - EXPLAINER -> 'lime', 'parzen', 'greedy' or 'random'
     
         python evaluate_explanations.py --dataset DATASET --algorithm ALGORITHM --explainer EXPLAINER 
-
+#### Results: 20NewsGroups, Athiest/Christian subset (Average Test Accuracy): 
+ - Logistic Regression: 0.6464
+ - Tree: 0.9650
 ## Experiment in section 5.3:
 - DATASET -> 'multi_polarity_books', 'multi_polarity_kitchen', 'multi_polarity_dvd', 'multi_polarity_kitchen'
 - ALGORITHM -> 'logreg', 'random_forest', 'svm', 'tree' or 'embforest', although you would need to set up word2vec for embforest
