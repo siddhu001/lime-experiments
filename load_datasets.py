@@ -6,6 +6,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn import linear_model
 from sklearn import tree
 from sklearn import svm
+from sklearn.datasets import fetch_20newsgroups
 # PUT POLARITY DATASET PATH HERE
 POLARITY_PATH = '/Users/marcotcr/phd/datasets/multi_domain_polarity/'
 def LoadDataset(dataset_name):
