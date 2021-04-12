@@ -7,7 +7,13 @@ Running the commands below should be enough to get all of the results. You need 
 If we forgot something, please email the first author. 
 
 ## Experiment in section 5.2:
-- DATASET -> 'multi_polarity_books', 'multi_polarity_kitchen', 'multi_polarity_dvd', 'multi_polarity_kitchen'
+- DATASET -> 'multi_polarity_books', 'multi_polarity_kitchen', 'multi_polarity_dvd', 'multi_polarity_kitchen' 
+
+  For NewsGroups: '2ng', 'talkng', '3ng'
+  
+  - '2ng' = Athiest/Christian
+  - 'talkng' = Politics - Guns vs Misc
+  - '3ng' = windows.misc, ibm.hardware, windows.x
 - ALGORITHM -> 'l1logreg', 'tree'
 - EXPLAINER -> 'lime', 'parzen', 'greedy' or 'random'
     
