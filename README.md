@@ -22,12 +22,24 @@ If we forgot something, please email the first author.
 #####20NewsGroups, Athiest/Christian subset: 
  - Logistic Regression: 0.6464
  - Tree: 0.9650
-#####DVDs Dataset (as in paper):
-- Logistic Regression: 0.9092
-- Tree: 0.9674
-#####Books Dataset (as in paper):
-- Logistic Regression: 0.8512
-- Tree: 0.9515
+
+  **Multi Polarity: Books**
+
+| Technique | LR  |  Decision Tree  |
+|-----------|-------|--------------- |
+| Random    | 18.27 | 18.51 |
+| Greedy    | 63.23  | 37.4 | 
+| Lime      | 85.12  | 95.15 |
+
+
+**Multi Polarity: DVDs**
+
+| Something | LR     | Decision Tree           |
+|-----------|-------|----------|
+| Random    | 21.25 | .2067 | 
+| Greedy    | 62.88 | 40.46 | 
+| Lime    | 90.92 | 96.74 |
+
 ## Experiment in section 5.3:
 - DATASET -> 'multi_polarity_books', 'multi_polarity_kitchen', 'multi_polarity_dvd', 'multi_polarity_kitchen'
 - ALGORITHM -> 'logreg', 'random_forest', 'svm', 'tree' or 'embforest', although you would need to set up word2vec for embforest
