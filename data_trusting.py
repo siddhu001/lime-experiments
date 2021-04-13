@@ -95,7 +95,7 @@ def main():
     sys.stdout.flush()
     exp, mean = LIME.explain_instance(test_vectors[i], 1, classifier.predict_proba, args.num_features)
     exps['LIME'].append((exp, mean))
-    exp = parzen.explain_instance(test_vectors[i], 1, classifier.predict_proba, args.num_features, None)
+    exp = parzen.explain_instance(test_vectors[i], 1, classifier.predict_proba, args.num_features, None) 
     mean = parzen.predict_proba(test_vectors[i])[1]
     exps['parzen'].append((exp, mean))
 
