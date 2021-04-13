@@ -84,7 +84,7 @@ def main():
     for expl in explainer_names:
       exps1[expl] = []
       exps2[expl] = []
-    print('Round ', Z)
+    print('Round', Z)
     sys.stdout.flush()
     fake_features_z = [([.1, .2], [.1,.1], 10)]#, ([.2, .1], [.1,.1], 10)]
     clean_train, dirty_train, clean_test = corrupt_dataset(fake_features_z, train_data, train_labels, test_data, test_labels)
@@ -117,11 +117,11 @@ def main():
         found_tree = False
         break
     if not found_tree:
-      print('skipping iteration ', Z)
+      print('skipping iteration', Z)
       continue
     print('done')
-    print('Train acc1: ', train_acc1, 'Train acc2: ', train_acc2)
-    print('Test acc1: ', test_acc1, 'Test acc2: ', test_acc2)
+    print('Train acc1:', train_acc1, 'Train acc2:', train_acc2)
+    print('Test acc1:', test_acc1, 'Test acc2:', test_acc2)
     sys.stdout.flush()
     predictions = c1.predict(dirty_train_vectors)
     predictions2 = c2.predict(dirty_train_vectors)
