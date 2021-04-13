@@ -31,6 +31,8 @@ def get_classifier(name, vectorizer):
     return neighbors.KNeighborsClassifier()
   if name == 'embforest':
     return embedding_forest.EmbeddingForest(vectorizer)
+  # Should not reach.
+  assert False, breakpoint()
 
 def main():
   parser = argparse.ArgumentParser(description='Evaluate some explanations')
@@ -66,7 +68,8 @@ def main():
   LIME = explainers.GeneralizedLocalExplainer(kernel, explainers.data_labels_distances_mapping_text, num_samples=15000, return_mean=True, verbose=False, return_mapped=True)
 
   parzen = parzen_windows.ParzenWindowClassifier()
-  cv_preds = sklearn.cross_validation.cross_val_predict(classifier, train_vectors, train_labels, cv=5)
+
+  cv_preds = sklearn.model_selection.cross_val_predict(classifier, train_vectors, train_labels, cv=5)
   parzen.fit(train_vectors, cv_preds)
   sigmas = {'multi_polarity_electronics': {'neighbors': 0.75, 'svm': 10.0, 'tree': 0.5,
   'logreg': 0.5, 'random_forest': 0.5, 'embforest': 0.75},
@@ -75,12 +78,14 @@ def main():
   'multi_polarity_dvd': {'neighbors': 0.5, 'svm': 0.75, 'tree': 8.0, 'logreg':
   0.75, 'random_forest': 0.5, 'embforest': 5.0}, 'multi_polarity_books':
   {'neighbors': 0.5, 'svm': 7.0, 'tree': 2.0, 'logreg': 1.0, 'random_forest':
-  1.0, 'embforest': 3.0}}
+  1.0, 'embforest': 3.0}, '2ng': {'neighbors': 1.0, 'svm': 6.0, 'tree': 0.75,
+  'logreg': 0.25, 'random_forest': 6.0, 'embforest': 1.0}}
   parzen.sigma = sigmas[dataset][args.algorithm]
 
   random = explainers.RandomExplainer()
   exps = {}
-  explainer_names = ['LIME', 'random', 'greedy', 'parzen']
+  #explainer_names = ['LIME', 'random', 'greedy', 'parzen']
+  explainer_names = ['LIME', 'random', 'greedy']
   for expl in explainer_names:
     exps[expl] = []
 
@@ -91,9 +96,9 @@ def main():
     sys.stdout.flush()
     exp, mean = LIME.explain_instance(test_vectors[i], 1, classifier.predict_proba, args.num_features)
     exps['LIME'].append((exp, mean))
-    exp = parzen.explain_instance(test_vectors[i], 1, classifier.predict_proba, args.num_features, None) 
-    mean = parzen.predict_proba(test_vectors[i])[1]
-    exps['parzen'].append((exp, mean))
+    #exp = parzen.explain_instance(test_vectors[i], 1, classifier.predict_proba, args.num_features, None) 
+    #mean = parzen.predict_proba(test_vectors[i])[1]
+    #exps['parzen'].append((exp, mean))
 
     exp = random.explain_instance(test_vectors[i], 1, None, args.num_features, None)
     exps['random'].append(exp)
@@ -127,10 +132,10 @@ def main():
       tot = prev_tot2 - sum([x[1] for x in exp if x[0] in untrustworthy])
       trust['LIME'].add(i) if trust_fn(tot, prev_tot) else mistrust['LIME'].add(i)
 
-      exp, mean = exps['parzen'][i]
-      prev_tot = mean
-      tot = mean - sum([x[1] for x in exp if x[0] in untrustworthy])
-      trust['parzen'].add(i) if trust_fn(tot, prev_tot) else mistrust['parzen'].add(i)
+      #exp, mean = exps['parzen'][i]
+      #prev_tot = mean
+      #tot = mean - sum([x[1] for x in exp if x[0] in untrustworthy])
+      #trust['parzen'].add(i) if trust_fn(tot, prev_tot) else mistrust['parzen'].add(i)
       exp = exps['random'][i]
       trust['random'].add(i) if trust_fn_all(exp, untrustworthy) else mistrust['random'].add(i)
 
@@ -157,13 +162,15 @@ def main():
       f1z = 2 * (prec * rec) / (prec + rec) if (prec and rec) else 0
       f1[expl].append(f1z)
 
-  print('Average number of flipped predictions: ', np.mean(flipped_preds_size), ' +- ', np.std(flipped_preds_size))
+  print('Average number of flipped predictions:', np.mean(flipped_preds_size), '+-', np.std(flipped_preds_size))
   print('Precision:')
   for expl in explainer_names:
-    print(expl, np.mean(precision[expl]), ' +- ', np.std(precision[expl]), ' pvalue ', sp.stats.ttest_ind(precision[expl], precision['LIME'])[1].round(4))
+    print(expl, np.mean(precision[expl]), '+-', np.std(precision[expl]), 'pvalue', sp.stats.ttest_ind(precision[expl], precision['LIME'])[1].round(4))
+  print()
   print('Recall:')
   for expl in explainer_names:
-    print(expl, np.mean(recall[expl]),  ' +- ', np.std(recall[expl]), ' pvalue ', sp.stats.ttest_ind(recall[expl], recall['LIME'])[1].round(4))
+    print(expl, np.mean(recall[expl]), '+-', np.std(recall[expl]), 'pvalue', sp.stats.ttest_ind(recall[expl], recall['LIME'])[1].round(4))
+  print()
   print('F1:')
   for expl in explainer_names:
     print(expl, np.mean(f1[expl]), '+-', np.std(f1[expl]), 'pvalue', sp.stats.ttest_ind(f1[expl], f1['LIME'])[1].round(4))

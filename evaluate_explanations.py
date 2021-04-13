@@ -49,15 +49,14 @@ class ExplanationEvaluator:
           # reduce x to only the most important features
           lengths = [len(x.nonzero()[0]) for x in SelectFromModel(self.classifiers[dataset]['l1logreg'], prefit=True).transform(self.train_vectors[dataset])]
           if np.max(lengths) <= 10:
-            #print 'Logreg for ', dataset, ' has mean length',  np.mean(lengths), 'with C=', c
-            #print 'And max length = ', np.max(lengths)
+            #print('Logreg for ', dataset, ' has mean length',  np.mean(lengths), 'with C=', c)
+            #print('And max length = ', np.max(lengths))
             break
       if classifier == 'tree':
         self.classifiers[dataset]['tree'] = tree.DecisionTreeClassifier(random_state=1)
         self.classifiers[dataset]['tree'].fit(self.train_vectors[dataset], self.train_labels[dataset])
         lengths = [len(get_tree_explanation(self.classifiers[dataset]['tree'], self.train_vectors[dataset][i])) for i in range(self.train_vectors[dataset].shape[0])]
-        #print 'Tree for ', dataset, ' has mean length',  np.mean(lengths)
-
+        #print('Tree for ', dataset, ' has mean length',  np.mean(lengths))
   def load_datasets(self, dataset_names):
     self.train_data = {}
     self.train_labels = {}
@@ -84,6 +83,7 @@ class ExplanationEvaluator:
       print(d)
       self.init_classifiers(d)
     print('Done')
+    print()
   def measure_explanation_hability(self, explain_fn, max_examples=None):
     """Asks for explanations for all predictions in the train and test set, with
     budget = size of explanation. Returns two maps (train_results,

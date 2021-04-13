@@ -35,7 +35,7 @@ class ParzenWindowClassifier:
         #pr = np.array([self.kernel(z, self.sigma) for z in b])
         pr = self.kernel(b, self.sigma)
         prob = sum(pr[self.ones]) / sum(pr)
-        #print prob
+        #print(prob)
         return int(prob > .5)
     def predict_proba(self, x):
         b = sp.sparse.csr_matrix(x - self.X)
@@ -94,14 +94,14 @@ def main():
   print('cv_size', train_cv.shape[0])
   classifier = get_classifier(args.algorithm, vectorizer)
   classifier.fit(train_v, y_v)
-  print('train accuracy:'.format(accuracy_score(y_v, classifier.predict(train_v))))
-  print('cv accuracy:'.format(accuracy_score(y_cv, classifier.predict(train_cv))))
+  print('train accuracy:', accuracy_score(y_v, classifier.predict(train_v)))
+  print('cv accuracy:', y_cv, classifier.predict(train_cv))
   yhat_v = classifier.predict(train_v)
   yhat_cv = classifier.predict(train_cv)
   p = ParzenWindowClassifier()
   p.fit(train_v, yhat_v)
   p.find_sigma([0.1, .25, .5, .75, 1,2,3,4,5,6,7,8,9,10], train_cv, yhat_cv)
-  print('Best sigma:'.format(p.sigma))
+  print('Best sigma:', p.sigma)
 
 if __name__ == "__main__":
     main()
