@@ -6,6 +6,8 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn import linear_model
 from sklearn import tree
 from sklearn import svm
+from sklearn import datasets
+
 # PUT POLARITY DATASET PATH HERE
 POLARITY_PATH = '/Users/vijay/Documents/code/lime-experiments/multi_domain_polarity/sorted_data/'
 def LoadDataset(dataset_name):
@@ -19,8 +21,8 @@ def LoadDataset(dataset_name):
     if dataset_name == '3ng':
       cats = ['comp.os.ms-windows.misc', 'comp.sys.ibm.pc.hardware', 'comp.windows.x']
       class_names = ['windows.misc', 'ibm.hardware', 'windows.x']
-    newsgroups_train = fetch_20newsgroups(subset='train',categories=cats)
-    newsgroups_test = fetch_20newsgroups(subset='test',categories=cats)
+    newsgroups_train = datasets.fetch_20newsgroups(subset='train',categories=cats)
+    newsgroups_test = datasets.fetch_20newsgroups(subset='test',categories=cats)
     train_data = newsgroups_train.data
     train_labels = newsgroups_train.target
     test_data = newsgroups_test.data
@@ -34,11 +36,11 @@ def LoadMultiDomainDataset(path_data, remove_bigrams=True):
   pos = []
   neg = []
   def get_words(line, remove_bigrams=True):
-    z = [tuple(x.split(':')) for x in re.findall('\w*?:\d', line)]
+    tokens = [tuple(x.split(':')) for x in re.findall('\w*?:\d', line)]
     if remove_bigrams:
-      z = ' '.join([' '.join([x[0]] * int(x[1])) for x in z if '_' not in x[0]])
+      z = ' '.join([' '.join([x[0]] * int(x[1])) for x in tokens if '_' not in x[0]])
     else:
-      z = ' '.join([' '.join([x[0]] * int(x[1])) for x in z])
+      z = ' '.join([' '.join([x[0]] * int(x[1])) for x in tokens])
     return z
   for line in open(os.path.join(path_data, 'negative.review')):
     neg.append(get_words(line, remove_bigrams))

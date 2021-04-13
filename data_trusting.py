@@ -31,6 +31,8 @@ def get_classifier(name, vectorizer):
     return neighbors.KNeighborsClassifier()
   if name == 'embforest':
     return embedding_forest.EmbeddingForest(vectorizer)
+  # Should not reach.
+  assert False, breakpoint()
 
 def main():
   parser = argparse.ArgumentParser(description='Evaluate some explanations')
@@ -66,7 +68,8 @@ def main():
   LIME = explainers.GeneralizedLocalExplainer(kernel, explainers.data_labels_distances_mapping_text, num_samples=15000, return_mean=True, verbose=False, return_mapped=True)
 
   parzen = parzen_windows.ParzenWindowClassifier()
-  cv_preds = sklearn.cross_validation.cross_val_predict(classifier, train_vectors, train_labels, cv=5)
+
+  cv_preds = sklearn.model_selection.cross_val_predict(classifier, train_vectors, train_labels, cv=5)
   parzen.fit(train_vectors, cv_preds)
   sigmas = {'multi_polarity_electronics': {'neighbors': 0.75, 'svm': 10.0, 'tree': 0.5,
   'logreg': 0.5, 'random_forest': 0.5, 'embforest': 0.75},
@@ -75,7 +78,8 @@ def main():
   'multi_polarity_dvd': {'neighbors': 0.5, 'svm': 0.75, 'tree': 8.0, 'logreg':
   0.75, 'random_forest': 0.5, 'embforest': 5.0}, 'multi_polarity_books':
   {'neighbors': 0.5, 'svm': 7.0, 'tree': 2.0, 'logreg': 1.0, 'random_forest':
-  1.0, 'embforest': 3.0}}
+  1.0, 'embforest': 3.0}, '2ng': {'neighbors': 1.0, 'svm': 6.0, 'tree': 0.75,
+  'logreg': 0.25, 'random_forest': 6.0, 'embforest': 1.0}}
   parzen.sigma = sigmas[dataset][args.algorithm]
 
   random = explainers.RandomExplainer()
@@ -91,7 +95,7 @@ def main():
     sys.stdout.flush()
     exp, mean = LIME.explain_instance(test_vectors[i], 1, classifier.predict_proba, args.num_features)
     exps['LIME'].append((exp, mean))
-    exp = parzen.explain_instance(test_vectors[i], 1, classifier.predict_proba, args.num_features, None) 
+    exp = parzen.explain_instance(test_vectors[i], 1, classifier.predict_proba, args.num_features, None)
     mean = parzen.predict_proba(test_vectors[i])[1]
     exps['parzen'].append((exp, mean))
 
