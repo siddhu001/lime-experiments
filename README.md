@@ -27,6 +27,25 @@ If we forgot something, please email the first author.
 
         python data_trusting.py -d DATASET -a ALGORITHM -k 10 -u .25 -r NUM_ROUNDS
 
+### Results
+All results shown are F1 (in percent form), similar to the LIME paper
+
+**Multi Polarity: Books**
+
+| Something | LR     | NN            | RF            | SVM           |
+|-----------|-------|---------------|---------------|---------------|
+| Random    | 56.9 | x | x | x |
+| Greedy    | 14.7  | x | x | x |
+| Lime      | 97.0  | x | x | x |
+
+**Multi Polarity: DVDs**
+
+| Something | LR     | NN            | RF            | SVM           |
+|-----------|-------|---------------|---------------|---------------|
+| Random    | x | x | x | x |
+| Greedy    | x | x | x | x |
+| Lime      | x | x | x | x |
+
 ## Experiment in section 5.4:
 - NUM_ROUNDS -> Desired number of rounds
 - DATASET -> 'multi_polarity_books', 'multi_polarity_kitchen', 'multi_polarity_dvd', 'multi_polarity_kitchen'
