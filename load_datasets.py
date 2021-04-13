@@ -9,7 +9,7 @@ from sklearn import svm
 from sklearn import datasets
 
 # PUT POLARITY DATASET PATH HERE
-POLARITY_PATH = '/Users/vijay/Documents/code/lime-experiments/multi_domain_polarity/sorted_data/'
+POLARITY_PATH = '/Users/vijay/Documents/code/lime-experiments/multi_domain_polarity/processed_acl/'
 def LoadDataset(dataset_name):
   if dataset_name.endswith('ng'):
     if dataset_name == '2ng':

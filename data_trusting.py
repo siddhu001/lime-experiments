@@ -84,7 +84,8 @@ def main():
 
   random = explainers.RandomExplainer()
   exps = {}
-  explainer_names = ['LIME', 'random', 'greedy', 'parzen']
+  #explainer_names = ['LIME', 'random', 'greedy', 'parzen']
+  explainer_names = ['LIME', 'random', 'greedy']
   for expl in explainer_names:
     exps[expl] = []
 
@@ -95,9 +96,9 @@ def main():
     sys.stdout.flush()
     exp, mean = LIME.explain_instance(test_vectors[i], 1, classifier.predict_proba, args.num_features)
     exps['LIME'].append((exp, mean))
-    exp = parzen.explain_instance(test_vectors[i], 1, classifier.predict_proba, args.num_features, None) 
-    mean = parzen.predict_proba(test_vectors[i])[1]
-    exps['parzen'].append((exp, mean))
+    #exp = parzen.explain_instance(test_vectors[i], 1, classifier.predict_proba, args.num_features, None) 
+    #mean = parzen.predict_proba(test_vectors[i])[1]
+    #exps['parzen'].append((exp, mean))
 
     exp = random.explain_instance(test_vectors[i], 1, None, args.num_features, None)
     exps['random'].append(exp)
@@ -131,10 +132,10 @@ def main():
       tot = prev_tot2 - sum([x[1] for x in exp if x[0] in untrustworthy])
       trust['LIME'].add(i) if trust_fn(tot, prev_tot) else mistrust['LIME'].add(i)
 
-      exp, mean = exps['parzen'][i]
-      prev_tot = mean
-      tot = mean - sum([x[1] for x in exp if x[0] in untrustworthy])
-      trust['parzen'].add(i) if trust_fn(tot, prev_tot) else mistrust['parzen'].add(i)
+      #exp, mean = exps['parzen'][i]
+      #prev_tot = mean
+      #tot = mean - sum([x[1] for x in exp if x[0] in untrustworthy])
+      #trust['parzen'].add(i) if trust_fn(tot, prev_tot) else mistrust['parzen'].add(i)
       exp = exps['random'][i]
       trust['random'].add(i) if trust_fn_all(exp, untrustworthy) else mistrust['random'].add(i)
 
