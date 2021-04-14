@@ -34,7 +34,7 @@ If we forgot something, please email the first author.
 
 **Multi Polarity: DVDs**
 
-| Something | LR     | Decision Tree           |
+|  | LR     | Decision Tree           |
 |-----------|-------|----------|
 | Random    | 21.25 | .2067 | 
 | Greedy    | 62.88 | 40.46 | 
@@ -51,7 +51,7 @@ All results shown are F1 (in percent form), similar to the LIME paper
 
 **Multi Polarity: Books**
 
-| Something | LR     | NN            | RF            | SVM           |
+|  | LR     | NN            | RF            | SVM           |
 |-----------|-------|---------------|---------------|---------------|
 | Random    | 56.9 | x | x | x |
 | Greedy    | 14.7  | x | x | x |
@@ -59,7 +59,7 @@ All results shown are F1 (in percent form), similar to the LIME paper
 
 **Multi Polarity: DVDs**
 
-| Something | LR     | NN            | RF            | SVM           |
+|  | LR     | NN            | RF            | SVM           |
 |-----------|-------|---------------|---------------|---------------|
 | Random    | x | x | x | x |
 | Greedy    | x | x | x | x |
