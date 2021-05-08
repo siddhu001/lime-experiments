@@ -1,7 +1,7 @@
 import sys
 import copy
 import os
-from lime.lime_text import LimeTextExplainer
+from contrastlime.lime_text import LimeTextExplainer
 import numpy as np
 import scipy as sp
 import json
@@ -15,7 +15,6 @@ from sklearn.linear_model import Ridge
 from sklearn.pipeline import make_pipeline
 import pickle
 import explainers
-import parzen_windows
 import embedding_forest
 from load_datasets import *
 import argparse
@@ -48,6 +47,11 @@ def main():
   args = parser.parse_args()
   dataset = args.dataset
   train_data, train_labels, test_data, test_labels, class_names = LoadDataset(dataset)
+
+  # Delete:
+  test_data = test_data[:5]
+  test_labels = test_labels[:5]
+
   vectorizer = CountVectorizer(lowercase=False, binary=True) 
   train_vectors = vectorizer.fit_transform(train_data)
   test_vectors = vectorizer.transform(test_data)
@@ -56,11 +60,13 @@ def main():
   inverse_vocabulary = terms[np.argsort(indices)]
 
   np.random.seed(1)
-  classifier = get_classifier(args.algorithm, vectorizer)
-  classifier.fit(train_vectors, train_labels)
+  classifier_a = get_classifier(args.algorithm1, vectorizer)
+  classifier_a.fit(train_vectors, train_labels)
+  classifier_a_pipeline = make_pipeline(vectorizer, classifier_a)
 
-  classifier_pipeline = make_pipeline(vectorizer, classifier)
-
+  classifier_b = get_classifier(args.algorithm2, vectorizer)
+  classifier_b.fit(train_vectors, train_labels)
+  classifier_b_pipeline = make_pipeline(vectorizer, classifier_b)
 
   np.random.seed(1)
   untrustworthy_rounds = []
@@ -73,14 +79,10 @@ def main():
   kernel = lambda d: np.sqrt(np.exp(-(d**2) / rho ** 2))
 
   # simple_LIME = explainers.GeneralizedLocalExplainer(kernel, explainers.data_labels_distances_mapping_text, num_samples=15000, return_mean=True, verbose=False, return_mapped=True)
-  LIME = LimeTextExplainer(class_names=class_names)
+  LIME = LimeTextExplainer(class_names=class_names, mode="classification") 
 
   model_regressor = Ridge(alpha=1, fit_intercept=True, random_state=0)
 
-  parzen = parzen_windows.ParzenWindowClassifier()
-
-  cv_preds = sklearn.model_selection.cross_val_predict(classifier, train_vectors, train_labels, cv=5)
-  parzen.fit(train_vectors, cv_preds)
   sigmas = {'multi_polarity_electronics': {'neighbors': 0.75, 'svm': 10.0, 'tree': 0.5,
   'logreg': 0.5, 'random_forest': 0.5, 'embforest': 0.75},
   'multi_polarity_kitchen': {'neighbors': 1.0, 'svm': 6.0, 'tree': 0.75,
@@ -90,38 +92,76 @@ def main():
   {'neighbors': 0.5, 'svm': 7.0, 'tree': 2.0, 'logreg': 1.0, 'random_forest':
   1.0, 'embforest': 3.0}, '2ng': {'neighbors': 1.0, 'svm': 6.0, 'tree': 0.75,
   'logreg': 0.25, 'random_forest': 6.0, 'embforest': 1.0}}
-  parzen.sigma = sigmas[dataset][args.algorithm]
 
   random = explainers.RandomExplainer()
   exps = {}
-  #explainer_names = ['LIME', 'random', 'greedy', 'parzen']
-  explainer_names = ['LIME', 'random', 'greedy']
+  explainer_names = ['DiffLIME', 'ContrastLIME', 'random', 'greedy']
   for expl in explainer_names:
     exps[expl] = []
 
-  predictions = classifier.predict(test_vectors)
-  predict_probas = classifier.predict_proba(test_vectors)[:,1]
+  predictions_a = classifier_a.predict(test_vectors)
+  predict_probas_a = classifier_a.predict_proba(test_vectors)[:,1]
+  predictions_b = classifier_b.predict(test_vectors)
+
+  disagreements = np.array(predictions_a != predictions_b, dtype=int)
+
+  predict_probas_b = classifier_b.predict_proba(test_vectors)[:,1]
+
+  LARGE_NUM_OF_FEATURES=200
+
   for i in range(test_vectors.shape[0]):
     print(i)
     sys.stdout.flush()
 
+    # Doesn't need to change between single-model and contrastive LIME.
     exp = random.explain_instance(test_vectors[i], 1, None, args.num_features, None)
     exps['random'].append(exp)
 
-    class_exp = LIME.explain_instance(test_data[i],
-                                      classifier_pipeline.predict_proba,
-                                      num_features=args.num_features,
+    # Compute Diff-LIME
+    class_exp_a = LIME.explain_instance(test_data[i],
+                                      classifier_a_pipeline.predict_proba,
+                                      num_features=LARGE_NUM_OF_FEATURES,
                                       model_regressor=model_regressor)
-    lime_exp = [(vectorizer.vocabulary_.get(w, None), weight) for w, weight in class_exp.as_list() if w in vectorizer.vocabulary_]
-    lime_score = class_exp.score
+    lime_exp_a = [(vectorizer.vocabulary_.get(w, None), weight) for w, weight in class_exp_a.as_list() if w in vectorizer.vocabulary_]
+    lime_exp_a_dict = dict(lime_exp_a)
+    lime_keys_a = set(lime_exp_a_dict.keys())
+    lime_score_a = class_exp_a.score
+    class_exp_b = LIME.explain_instance(test_data[i],
+                                      classifier_b_pipeline.predict_proba,
+                                      num_features=LARGE_NUM_OF_FEATURES,
+                                      model_regressor=model_regressor)
+    lime_exp_b = [(vectorizer.vocabulary_.get(w, None), weight) for w, weight in class_exp_b.as_list() if w in vectorizer.vocabulary_]
+    lime_exp_b_dict = dict(lime_exp_b)
+    lime_keys_b = set(lime_exp_b_dict.keys())
+    lime_score_b = class_exp_b.score
+    combined_lime_keys = lime_keys_a.union(lime_keys_b)
+    diff_lime_exp = []
+    for word_idx in combined_lime_keys:
+      lime_difference = lime_exp_b_dict.get(word_idx, 0.0) - lime_exp_a_dict.get(word_idx, 0.0)
+      diff_lime_exp.append((word_idx, lime_difference))
+    # Sort by difference of LIMEs
+    diff_lime_exp.sort(key = lambda x: np.abs(x[1]), reverse=True)
+    diff_lime_exp = diff_lime_exp[:args.num_features]
+    assert lime_score_a.keys() == lime_score_b.keys()
+    diff_lime_score = {k: lime_score_b[k] - lime_score_a[k] for k in lime_score_a}
+    exps['DiffLIME'].append((diff_lime_exp, diff_lime_score))
+    
+    # Compute ContrastLime
 
-    exps['LIME'].append((lime_exp, lime_score))
-    #exp = parzen.explain_instance(test_vectors[i], 1, classifier.predict_proba, args.num_features, None) 
-    #mean = parzen.predict_proba(test_vectors[i])[1]
-    #exps['parzen'].append((exp, mean))
+    contrastlime_class_exp = LIME.explain_instance_contrast(test_data[i],
+                                      classifier_a_pipeline.predict_proba,
+                                      classifier_b_pipeline.predict_proba,
+                                      num_features=LARGE_NUM_OF_FEATURES,
+                                      model_regressor=model_regressor)
+    contrastlime_exp = [(vectorizer.vocabulary_.get(w, None), weight) for w, weight in contrastlime_class_exp.as_list() if w in vectorizer.vocabulary_]
+    contrastlime_score = contrastlime_class_exp.score
+    exps['ContrastLIME'].append((contrastlime_exp, contrastlime_score))
 
-
-    exp = explainers.explain_greedy_martens(test_vectors[i], predictions[i], classifier.predict_proba, args.num_features)
+    exp = explainers.explain_contrast_greedy_martens(test_vectors[i],
+                                                     disagreements[i],
+                                                     classifier_a.predict_proba,
+                                                     classifier_b.predict_proba,
+                                                     args.num_features)
     exps['greedy'].append(exp)
 
   precision = {}
@@ -135,7 +175,11 @@ def main():
   for untrustworthy in untrustworthy_rounds:
     t = test_vectors.copy()
     t[:, untrustworthy] = 0
-    mistrust_idx = np.argwhere(classifier.predict(t) != classifier.predict(test_vectors)).flatten()
+
+    disagreement_predictions_originals = classifier_a.predict(test_vectors) != classifier_b.predict(test_vectors)
+    disagreement_predictions_updated = classifier_a.predict(t) != classifier_b.predict(t)
+    mistrust_idx = np.argwhere(disagreement_predictions_originals != disagreement_predictions_updated).flatten()
+
     print('Number of suspect predictions ', len(mistrust_idx))
     shouldnt_trust = set(mistrust_idx)
     flipped_preds_size.append(len(shouldnt_trust))
@@ -144,16 +188,23 @@ def main():
     trust_fn = lambda prev, curr: (prev > 0.5 and curr > 0.5) or (prev <= 0.5 and curr <= 0.5)
     trust_fn_all = lambda exp, unt: len([x[0] for x in exp if x[0] in unt]) == 0
     for i in range(test_vectors.shape[0]):
-      exp, mean = exps['LIME'][i]
-      prev_tot = predict_probas[i]
-      prev_tot2 = sum([x[1] for x in exp]) + mean
-      tot = prev_tot2 - sum([x[1] for x in exp if x[0] in untrustworthy])
-      trust['LIME'].add(i) if trust_fn(tot, prev_tot) else mistrust['LIME'].add(i)
+      prev_tot = predict_probas_b[i] - predict_probas_a[i]
 
-      #exp, mean = exps['parzen'][i]
-      #prev_tot = mean
-      #tot = mean - sum([x[1] for x in exp if x[0] in untrustworthy])
-      #trust['parzen'].add(i) if trust_fn(tot, prev_tot) else mistrust['parzen'].add(i)
+      exp, mean = exps['DiffLIME'][i]
+      assert list(mean.keys()) == [1]
+      prev_tot2 = sum([x[1] for x in exp]) + mean[1]
+      tot = prev_tot2 - sum([x[1] for x in exp if x[0] in untrustworthy])
+      trust['DiffLIME'].add(i) if trust_fn(tot, prev_tot) else mistrust['DiffLIME'].add(i)
+
+
+
+      exp, mean = exps['ContrastLIME'][i]
+      assert list(mean.keys()) == [1]
+      prev_tot2 = sum([x[1] for x in exp]) + mean[1]
+      tot = prev_tot2 - sum([x[1] for x in exp if x[0] in untrustworthy])
+      trust['ContrastLIME'].add(i) if trust_fn(tot, prev_tot) else mistrust['ContrastLIME'].add(i)
+
+
       exp = exps['random'][i]
       trust['random'].add(i) if trust_fn_all(exp, untrustworthy) else mistrust['random'].add(i)
 
@@ -183,14 +234,14 @@ def main():
   print('Average number of flipped predictions:', np.mean(flipped_preds_size), '+-', np.std(flipped_preds_size))
   print('Precision:')
   for expl in explainer_names:
-    print(expl, np.mean(precision[expl]), '+-', np.std(precision[expl]), 'pvalue', sp.stats.ttest_ind(precision[expl], precision['LIME'])[1].round(4))
+    print(expl, np.mean(precision[expl]), '+-', np.std(precision[expl]), 'pvalue', sp.stats.ttest_ind(precision[expl], precision['ContrastLIME'])[1].round(4))
   print()
   print('Recall:')
   for expl in explainer_names:
-    print(expl, np.mean(recall[expl]), '+-', np.std(recall[expl]), 'pvalue', sp.stats.ttest_ind(recall[expl], recall['LIME'])[1].round(4))
+    print(expl, np.mean(recall[expl]), '+-', np.std(recall[expl]), 'pvalue', sp.stats.ttest_ind(recall[expl], recall['ContrastLIME'])[1].round(4))
   print()
   print('F1:')
   for expl in explainer_names:
-    print(expl, np.mean(f1[expl]), '+-', np.std(f1[expl]), 'pvalue', sp.stats.ttest_ind(f1[expl], f1['LIME'])[1].round(4))
+    print(expl, np.mean(f1[expl]), '+-', np.std(f1[expl]), 'pvalue', sp.stats.ttest_ind(f1[expl], f1['ContrastLIME'])[1].round(4))
 if __name__ == "__main__":
     main()
