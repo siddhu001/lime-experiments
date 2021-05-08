@@ -48,10 +48,6 @@ def main():
   dataset = args.dataset
   train_data, train_labels, test_data, test_labels, class_names = LoadDataset(dataset)
 
-  # Delete:
-  test_data = test_data[:5]
-  test_labels = test_labels[:5]
-
   vectorizer = CountVectorizer(lowercase=False, binary=True) 
   train_vectors = vectorizer.fit_transform(train_data)
   test_vectors = vectorizer.transform(test_data)
