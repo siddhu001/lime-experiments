@@ -77,7 +77,9 @@ def main():
   # simple_LIME = explainers.GeneralizedLocalExplainer(kernel, explainers.data_labels_distances_mapping_text, num_samples=15000, return_mean=True, verbose=False, return_mapped=True)
   LIME = LimeTextExplainer(class_names=class_names, mode="classification") 
 
-  model_regressor = Ridge(alpha=1, fit_intercept=True, random_state=0)
+  ridge_regressor = Ridge(alpha=1, fit_intercept=True, random_state=0)
+  model_regressor = ridge_regressor
+  regressor_requires_positive_values=False
 
   sigmas = {'multi_polarity_electronics': {'neighbors': 0.75, 'svm': 10.0, 'tree': 0.5,
   'logreg': 0.5, 'random_forest': 0.5, 'embforest': 0.75},
@@ -117,7 +119,7 @@ def main():
     class_exp_a = LIME.explain_instance(test_data[i],
                                       classifier_a_pipeline.predict_proba,
                                       num_features=LARGE_NUM_OF_FEATURES,
-                                      model_regressor=model_regressor)
+                                      model_regressor=ridge_regressor)
     lime_exp_a = [(vectorizer.vocabulary_.get(w, None), weight) for w, weight in class_exp_a.as_list() if w in vectorizer.vocabulary_]
     lime_exp_a_dict = dict(lime_exp_a)
     lime_keys_a = set(lime_exp_a_dict.keys())
@@ -125,7 +127,7 @@ def main():
     class_exp_b = LIME.explain_instance(test_data[i],
                                       classifier_b_pipeline.predict_proba,
                                       num_features=LARGE_NUM_OF_FEATURES,
-                                      model_regressor=model_regressor)
+                                      model_regressor=ridge_regressor)
     lime_exp_b = [(vectorizer.vocabulary_.get(w, None), weight) for w, weight in class_exp_b.as_list() if w in vectorizer.vocabulary_]
     lime_exp_b_dict = dict(lime_exp_b)
     lime_keys_b = set(lime_exp_b_dict.keys())
@@ -147,8 +149,9 @@ def main():
     contrastlime_class_exp = LIME.explain_instance_contrast(test_data[i],
                                       classifier_a_pipeline.predict_proba,
                                       classifier_b_pipeline.predict_proba,
-                                      num_features=LARGE_NUM_OF_FEATURES,
-                                      model_regressor=model_regressor)
+                                      num_features=args.num_features,
+                                      model_regressor=model_regressor,
+                                      regressor_requires_positive_values=regressor_requires_positive_values)
     contrastlime_exp = [(vectorizer.vocabulary_.get(w, None), weight) for w, weight in contrastlime_class_exp.as_list() if w in vectorizer.vocabulary_]
     contrastlime_score = contrastlime_class_exp.score
     exps['ContrastLIME'].append((contrastlime_exp, contrastlime_score))
