@@ -1,6 +1,7 @@
 import sys
 import copy
 import os
+from lime.lime_text import LimeTextExplainer
 import numpy as np
 import scipy as sp
 import json
@@ -10,6 +11,8 @@ from sklearn import ensemble
 from sklearn import svm
 from sklearn import tree
 from sklearn import neighbors
+from sklearn.linear_model import Ridge
+from sklearn.pipeline import make_pipeline
 import pickle
 import explainers
 import parzen_windows
@@ -55,6 +58,8 @@ def main():
   classifier = get_classifier(args.algorithm, vectorizer)
   classifier.fit(train_vectors, train_labels)
 
+  classifier_pipeline = make_pipeline(vectorizer, classifier)
+
 
   np.random.seed(1)
   untrustworthy_rounds = []
@@ -65,7 +70,11 @@ def main():
   
   rho = 25
   kernel = lambda d: np.sqrt(np.exp(-(d**2) / rho ** 2))
-  LIME = explainers.GeneralizedLocalExplainer(kernel, explainers.data_labels_distances_mapping_text, num_samples=15000, return_mean=True, verbose=False, return_mapped=True)
+
+  # simple_LIME = explainers.GeneralizedLocalExplainer(kernel, explainers.data_labels_distances_mapping_text, num_samples=15000, return_mean=True, verbose=False, return_mapped=True)
+  LIME = LimeTextExplainer(class_names=class_names)
+
+  model_regressor = Ridge(alpha=1, fit_intercept=True, random_state=0)
 
   parzen = parzen_windows.ParzenWindowClassifier()
 
@@ -94,14 +103,22 @@ def main():
   for i in range(test_vectors.shape[0]):
     print(i)
     sys.stdout.flush()
-    exp, mean = LIME.explain_instance(test_vectors[i], 1, classifier.predict_proba, args.num_features)
-    exps['LIME'].append((exp, mean))
+
+    exp = random.explain_instance(test_vectors[i], 1, None, args.num_features, None)
+    exps['random'].append(exp)
+
+    class_exp = LIME.explain_instance(test_data[i],
+                                      classifier_pipeline.predict_proba,
+                                      num_features=args.num_features,
+                                      model_regressor=model_regressor)
+    lime_exp = [(vectorizer.vocabulary_.get(w, None), weight) for w, weight in class_exp.as_list() if w in vectorizer.vocabulary_]
+    lime_score = class_exp.score
+
+    exps['LIME'].append((lime_exp, lime_score))
     #exp = parzen.explain_instance(test_vectors[i], 1, classifier.predict_proba, args.num_features, None) 
     #mean = parzen.predict_proba(test_vectors[i])[1]
     #exps['parzen'].append((exp, mean))
 
-    exp = random.explain_instance(test_vectors[i], 1, None, args.num_features, None)
-    exps['random'].append(exp)
 
     exp = explainers.explain_greedy_martens(test_vectors[i], predictions[i], classifier.predict_proba, args.num_features)
     exps['greedy'].append(exp)
