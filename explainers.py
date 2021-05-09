@@ -72,6 +72,7 @@ def explain_greedy(instance_vector,
     z[0,i] = 0
     explanation.append(i)
   return [(x, 1) for x in explanation]
+
 def most_important_word_martens(predict_fn, v, class_):
   # Returns the word w that moves P(Y) - P(Y|NOT w) the most for class Y.
   max_index = 0
@@ -82,6 +83,24 @@ def most_important_word_martens(predict_fn, v, class_):
     v[0,i] = 0
     pred = predict_fn(v)[0,class_]
     change = orig - pred
+    if change > max_change:
+      max_change = change
+      max_index = i
+    v[0,i] = val
+  if max_change < 0:
+    return -1, max_change
+  return max_index, max_change
+
+def most_important_word_martens_contrast(predict_fn_a, predict_fn_b, v, class_):
+  # Returns the word w that moves P(Y) - P(Y|NOT w) the most for class Y.
+  max_index = 0
+  max_change = -1
+  orig_diff =  predict_fn_b(v)[0,class_] - predict_fn_a(v)[0,class_]
+  for i in v.nonzero()[1]:
+    val = v[0,i]
+    v[0,i] = 0
+    pred_diff = predict_fn_b(v)[0,class_] - predict_fn_a(v)[0,class_]
+    change = orig_diff - pred_diff
     if change > max_change:
       max_change = change
       max_index = i
@@ -102,6 +121,30 @@ def explain_greedy_martens(instance_vector,
   cur_score = predict_fn(instance_vector)[0, label]
   while len(explanation) < num_features:
     i, change = most_important_word_martens(predict_fn, z, label)
+    cur_score -= change
+    if i == -1:
+      break
+    explanation.append(i)
+    if cur_score < .5:
+      break
+    z[0,i] = 0
+  return [(x, 1) for x in explanation]
+
+def explain_contrast_greedy_martens(instance_vector,
+                   label,
+                   predict_fn_a,
+                   predict_fn_b,
+                   num_features,
+                   dataset=None):
+  if not hasattr(predict_fn_a, '__call__'):
+      predict_fn_a = predict_fn_a.predict_proba
+  if not hasattr(predict_fn_b, '__call__'):
+      predict_fn_b = predict_fn_b.predict_proba
+  explanation = []
+  z = instance_vector.copy()
+  cur_score = predict_fn_b(instance_vector)[0, label] - predict_fn_a(instance_vector)[0, label]
+  while len(explanation) < num_features:
+    i, change = most_important_word_martens_contrast(predict_fn_a, predict_fn_b, z, label)
     cur_score -= change
     if i == -1:
       break
