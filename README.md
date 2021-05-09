@@ -4,6 +4,8 @@ Running the commands below should be enough to get all of the results. You need 
 
 `pip install -r requirements.txt`
 
+Also, must have `contrastlime` installed
+
 If we forgot something, please email the first author. 
 
 ## Experiment in section 5.2:
