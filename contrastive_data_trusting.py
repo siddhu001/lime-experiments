@@ -11,7 +11,7 @@ from sklearn import ensemble
 from sklearn import svm
 from sklearn import tree
 from sklearn import neighbors
-from sklearn.linear_model import Ridge
+from sklearn.linear_model import Ridge, TweedieRegressor, BayesianRidge
 from sklearn.pipeline import make_pipeline
 import pickle
 import explainers
@@ -78,8 +78,9 @@ def main():
   LIME = LimeTextExplainer(class_names=class_names, mode="classification") 
 
   ridge_regressor = Ridge(alpha=1, fit_intercept=True, random_state=0)
-  model_regressor = Ridge(alpha=1, fit_intercept=True, random_state=0)
-  regressor_requires_positive_values=False
+  #model_regressor = BayesianRidge(fit_intercept=True)
+  model_regressor = TweedieRegressor(power=3, alpha=1.0)
+  regressor_requires_positive_values=True
 
   sigmas = {'multi_polarity_electronics': {'neighbors': 0.75, 'svm': 10.0, 'tree': 0.5,
   'logreg': 0.5, 'random_forest': 0.5, 'embforest': 0.75},
@@ -166,10 +167,25 @@ def main():
   precision = {}
   recall = {}
   f1 = {}
+
+  neg_precision = {}
+  neg_recall = {}
+  neg_f1 = {}
+
+  macro_precision = {}
+  macro_recall = {}
+  macro_f1 = {}
+
   for name in explainer_names:
     precision[name] = []
     recall[name] = []
     f1[name] = []
+    neg_precision[name] = []
+    neg_recall[name] = []
+    neg_f1[name] = []
+    macro_precision[name] = []
+    macro_recall[name] = []
+    macro_f1[name] = []
   flipped_preds_size = []
   for untrustworthy in untrustworthy_rounds:
     t = test_vectors.copy()
@@ -225,22 +241,42 @@ def main():
         rec= float(len(true_positives)) / (len(true_positives) + len(false_negatives))
       except:
         rec= 0
+      try:
+        neg_prec= len(true_negatives) / float(len(true_negatives) + len(false_negatives))
+      except:
+        neg_prec= 0
+      try:
+        neg_rec= float(len(true_negatives)) / (len(true_negatives) + len(false_positives))
+      except:
+        neg_rec= 0
       precision[expl].append(prec)
       recall[expl].append(rec)
       f1z = 2 * (prec * rec) / (prec + rec) if (prec and rec) else 0
       f1[expl].append(f1z)
 
+      neg_precision[expl].append(neg_prec)
+      neg_recall[expl].append(neg_rec)
+      neg_f1z = 2 * (neg_prec * neg_rec) / (neg_prec + neg_rec) if (neg_prec and neg_rec) else 0
+      neg_f1[expl].append(neg_f1z)
+
+      macro_precision[expl].append((prec + neg_prec)/2)
+      macro_recall[expl].append((rec + neg_rec)/2)
+      macro_f1[expl].append((f1z + neg_f1z) / 2)
+
+
+
   print('Average number of flipped predictions:', np.mean(flipped_preds_size), '+-', np.std(flipped_preds_size))
-  print('Precision:')
+  print('Macro Precision:')
   for expl in explainer_names:
-    print(expl, np.mean(precision[expl]), '+-', np.std(precision[expl]), 'pvalue', sp.stats.ttest_ind(precision[expl], precision['ContrastLIME'])[1].round(4))
+    print(expl, np.mean(macro_precision[expl]), '+-', np.std(macro_precision[expl]), 'pvalue', sp.stats.ttest_ind(macro_precision[expl], macro_precision['ContrastLIME'])[1].round(4))
   print()
-  print('Recall:')
+  print('Macro Recall:')
   for expl in explainer_names:
-    print(expl, np.mean(recall[expl]), '+-', np.std(recall[expl]), 'pvalue', sp.stats.ttest_ind(recall[expl], recall['ContrastLIME'])[1].round(4))
+    print(expl, np.mean(macro_recall[expl]), '+-', np.std(macro_recall[expl]), 'pvalue', sp.stats.ttest_ind(macro_recall[expl], macro_recall['ContrastLIME'])[1].round(4))
   print()
-  print('F1:')
+  print('Macro F1:')
   for expl in explainer_names:
-    print(expl, np.mean(f1[expl]), '+-', np.std(f1[expl]), 'pvalue', sp.stats.ttest_ind(f1[expl], f1['ContrastLIME'])[1].round(4))
+    print(expl, np.mean(macro_f1[expl]), '+-', np.std(macro_f1[expl]), 'pvalue', sp.stats.ttest_ind(macro_f1[expl], macro_f1['ContrastLIME'])[1].round(4))
+  breakpoint()
 if __name__ == "__main__":
     main()
