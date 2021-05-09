@@ -78,9 +78,10 @@ def main():
   LIME = LimeTextExplainer(class_names=class_names, mode="classification") 
 
   ridge_regressor = Ridge(alpha=1, fit_intercept=True, random_state=0)
+  model_regressor = Ridge(alpha=1, fit_intercept=True, random_state=0)
   #model_regressor = BayesianRidge(fit_intercept=True)
-  model_regressor = TweedieRegressor(power=3, alpha=1.0)
-  regressor_requires_positive_values=True
+  # model_regressor = TweedieRegressor(power=3, alpha=1.0)
+  regressor_requires_positive_values=False
 
   sigmas = {'multi_polarity_electronics': {'neighbors': 0.75, 'svm': 10.0, 'tree': 0.5,
   'logreg': 0.5, 'random_forest': 0.5, 'embforest': 0.75},
