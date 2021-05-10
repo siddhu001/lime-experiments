@@ -276,6 +276,6 @@ def main():
   print('Macro F1:')
   for expl in explainer_names:
     print(expl, np.mean(macro_f1[expl]), '+-', np.std(macro_f1[expl]), 'pvalue', sp.stats.ttest_ind(macro_f1[expl], macro_f1['ContrastLIME'])[1].round(4))
-  breakpoint()
+
 if __name__ == "__main__":
     main()
