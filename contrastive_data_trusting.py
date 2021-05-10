@@ -206,16 +206,16 @@ def main():
 
       exp, mean = exps['DiffLIME'][i]
       assert list(mean.keys()) == [1]
-      prev_tot2 = sum([x[1] for x in exp]) + mean[1]
-      tot = prev_tot2 - sum([x[1] for x in exp if x[0] in untrustworthy])
+      prev_tot2 = sum([np.abs(x[1]) for x in exp]) + np.abs(mean[1])
+      tot = prev_tot2 - sum([np.abs(x[1]) for x in exp if x[0] in untrustworthy])
       trust['DiffLIME'].add(i) if trust_fn(tot, prev_tot) else mistrust['DiffLIME'].add(i)
 
 
 
       exp, mean = exps['ContrastLIME'][i]
       assert list(mean.keys()) == [1]
-      prev_tot2 = sum([x[1] for x in exp]) + mean[1]
-      tot = prev_tot2 - sum([x[1] for x in exp if x[0] in untrustworthy])
+      prev_tot2 = sum([np.abs(x[1]) for x in exp]) + np.abs(mean[1])
+      tot = prev_tot2 - sum([np.abs(x[1]) for x in exp if x[0] in untrustworthy])
       trust['ContrastLIME'].add(i) if trust_fn(tot, prev_tot) else mistrust['ContrastLIME'].add(i)
 
 
