@@ -258,9 +258,9 @@ def main():
       neg_f1z = 2 * (neg_prec * neg_rec) / (neg_prec + neg_rec) if (neg_prec and neg_rec) else 0
       neg_f1[expl].append(neg_f1z)
 
-      macro_precision[expl].append((prec + neg_prec)/2)
-      macro_recall[expl].append((rec + neg_rec)/2)
-      macro_f1[expl].append((f1z + neg_f1z) / 2)
+      macro_precision[expl].append((prec + prec)/2)
+      macro_recall[expl].append((rec + rec)/2)
+      macro_f1[expl].append((f1z + f1z) / 2)
 
 
 
